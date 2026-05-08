@@ -1,4 +1,6 @@
-import { useState } from "react";
+import React, { useState, Suspense } from "react";
+
+const UsersApp = React.lazy(() => import("users/App"));
 
 const App = () => {
   const [page, setPage] = useState("dashboard");
@@ -32,7 +34,11 @@ const App = () => {
 
         <main className="p-6">
           {page === "dashboard" && <div>Dashboard Content</div>}
-          {page === "users" && <div>Users Content</div>}
+          {page === "users" && (
+            <Suspense fallback={<div>Loading Users...</div>}>
+              <UsersApp />
+            </Suspense>
+          )}
         </main>
       </div>
     </div>
