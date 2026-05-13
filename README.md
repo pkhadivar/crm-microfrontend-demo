@@ -4,7 +4,7 @@ Scalable enterprise CRM dashboard built with React, TypeScript, Module Federatio
 
 ## Preview
 
-![CRM Dashboard](https://github.com/user-attachments/assets/b8fd2bd3-4c20-4b6f-b650-a20f1bf1bdf6)
+![CRM Dashboard](./screenshots/dashboard.png)
 
 ## Features
 
@@ -18,24 +18,24 @@ Scalable enterprise CRM dashboard built with React, TypeScript, Module Federatio
 
 ## Tech Stack
 
-| Technology | Purpose |
-|---|---|
-| React | UI library |
-| TypeScript | Type safety |
-| Vite | Build tool |
-| Tailwind CSS | Styling |
+| Technology        | Purpose                    |
+| ----------------- | -------------------------- |
+| React             | UI library                 |
+| TypeScript        | Type safety                |
+| Vite              | Build tool                 |
+| Tailwind CSS      | Styling                    |
 | Module Federation | Microfrontend architecture |
-| React Window | Virtualization |
+| React Window      | Virtualization             |
 
 ## Architecture
 
 apps/
-  host/
-  mfe-users/
+host/
+mfe-users/
 
 packages/
-  ui/
-  shared-types/
+ui/
+shared-types/
 
 ## Performance Optimization
 
@@ -50,12 +50,10 @@ The users module handles 100,000+ records using:
 
 pnpm install
 
-
 ## Run Host
 
 cd apps/host
 npm run dev
-
 
 ## Future Improvements
 
@@ -66,3 +64,4 @@ npm run dev
 - Docker
 - CI/CD
 
+![CRM Dashboard](./screenshots/folders-structure.png)
