@@ -6,8 +6,8 @@ const App = () => {
   const [page, setPage] = useState("dashboard");
 
   return (
-    <div className="flex h-screen bg-gray-100">
-      <aside className="w-64 bg-gray-900 text-white flex flex-col">
+    <div className="flex min-h-screen bg-gray-100">
+      <aside className="fixed left-0 top-0 flex h-screen w-64 flex-col bg-gray-900 text-white">
         <div className="p-4 text-xl font-bold border-b border-gray-700">
           CRM Panel
         </div>
@@ -15,29 +15,39 @@ const App = () => {
         <nav className="flex-1 p-4 space-y-2">
           <button
             onClick={() => setPage("dashboard")}
-            className="w-full text-left px-3 py-2 rounded hover:bg-gray-700"
+            className={`w-full rounded px-3 py-2 text-left transition-colors ${
+              page === "dashboard"
+                ? "bg-gray-700 font-semibold"
+                : "hover:bg-gray-800"
+            }`}
           >
             Dashboard
           </button>
 
           <button
             onClick={() => setPage("users")}
-            className="w-full text-left px-3 py-2 rounded hover:bg-gray-700"
+            className={`w-full rounded px-3 py-2 text-left transition-colors ${
+              page === "users"
+                ? "bg-gray-700 font-semibold"
+                : "hover:bg-gray-800"
+            }`}
           >
             Users
           </button>
         </nav>
       </aside>
 
-      <div className="flex-1 flex flex-col">
+      <div className="ml-64 flex flex-1 flex-col">
         <header className="bg-white shadow p-4">{page.toUpperCase()}</header>
 
-        <main className="p-6">
+        <main className="flex h-[calc(100vh-64px)] min-h-0 flex-col p-6">
           {page === "dashboard" && <div>Dashboard Content</div>}
           {page === "users" && (
-            <Suspense fallback={<div>Loading Users...</div>}>
-              <UsersApp />
-            </Suspense>
+            <div className="min-h-0 flex-1">
+              <Suspense fallback={<div>Loading Users...</div>}>
+                <UsersApp />
+              </Suspense>
+            </div>
           )}
         </main>
       </div>
