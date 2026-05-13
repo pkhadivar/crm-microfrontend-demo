@@ -1,32 +1,82 @@
-import { Table } from "@crm/ui";
 import { users } from "./data/users";
+import { useMemo, useState, useDeferredValue } from "react";
+import { FixedSizeList } from "react-window";
 
 const App = () => {
+  const [search, setSearch] = useState("");
+  const deferredSearch = useDeferredValue(search);
+  const isSearching = search !== deferredSearch;
+  const filteredUsers = useMemo(() => {
+    return users.filter((user) => {
+      const fullName = `${user.firstName} ${user.lastName}`.toLowerCase();
+
+      return (
+        fullName.includes(deferredSearch.toLowerCase()) ||
+        user.email.toLowerCase().includes(deferredSearch.toLowerCase())
+      );
+    });
+  }, [deferredSearch]);
+  const Row = ({
+    index,
+    style,
+  }: {
+    index: number;
+    style: React.CSSProperties;
+  }) => {
+    const user = filteredUsers[index];
+
+    return (
+      <div
+        style={style}
+        className="grid grid-cols-4 border-b border-gray-100 bg-white px-6 py-4 text-sm text-gray-700"
+      >
+        <div>
+          {user.firstName} {user.lastName}
+        </div>
+
+        <div>{user.email}</div>
+
+        <div className="capitalize">{user.role}</div>
+
+        <div>{user.createdAt}</div>
+      </div>
+    );
+  };
   return (
     <div className="flex h-full min-h-0 flex-col bg-gray-100 p-8">
       <h1 className="mb-6 shrink-0 text-3xl font-bold text-gray-800">
         Users Management
       </h1>
+      <div className="mb-6 shrink-0">
+        <input
+          type="text"
+          placeholder="Search users..."
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          className="w-full rounded-xl border border-gray-300 bg-white px-4 py-3 outline-none transition focus:border-blue-500"
+        />
+      </div>
+      {isSearching && (
+        <p className="mt-2 text-sm text-gray-500">Searching...</p>
+      )}
       <div className="min-h-0 flex-1 overflow-y-auto rounded-2xl border border-gray-200 bg-white">
-        <Table headers={["Name", "Email", "Role", "Created At"]}>
-          {users.map((user) => (
-            <tr key={user.id}>
-              <td className="px-6 py-4 text-sm text-gray-700">
-                {user.firstName} {user.lastName}
-              </td>
+        <div className="overflow-hidden rounded-2xl border border-gray-200 bg-white">
+          <div className="grid grid-cols-4 border-b border-gray-200 bg-gray-50 px-6 py-4 text-sm font-semibold text-gray-700">
+            <div>Name</div>
+            <div>Email</div>
+            <div>Role</div>
+            <div>Created At</div>
+          </div>
 
-              <td className="px-6 py-4 text-sm text-gray-700">{user.email}</td>
-
-              <td className="px-6 py-4 text-sm text-gray-700 capitalize">
-                {user.role}
-              </td>
-
-              <td className="px-6 py-4 text-sm text-gray-700">
-                {user.createdAt}
-              </td>
-            </tr>
-          ))}
-        </Table>
+          <FixedSizeList
+            height={600}
+            itemCount={filteredUsers.length}
+            itemSize={60}
+            width="100%"
+          >
+            {Row}
+          </FixedSizeList>
+        </div>
       </div>
     </div>
   );

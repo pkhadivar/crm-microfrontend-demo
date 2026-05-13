@@ -1,6 +1,6 @@
 import type { User } from '@crm/shared-types'
 
-export const users: User[] = Array.from({ length: 1000 }, (_, index) => ({
+export const users: User[] = Array.from({ length: 100000 }, (_, index) => ({
   id: String(index + 1),
 
   firstName: `User`,
