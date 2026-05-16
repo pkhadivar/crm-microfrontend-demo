@@ -1,6 +1,40 @@
 import { users } from "./data/users";
 import { useMemo, useState, useDeferredValue } from "react";
 import { FixedSizeList } from "react-window";
+import type { ColumnDef } from "@tanstack/react-table";
+import {
+  flexRender,
+  getCoreRowModel,
+  useReactTable,
+} from "@tanstack/react-table";
+import type { User } from "@crm/shared-types";
+
+const columns: ColumnDef<User>[] = [
+  {
+    accessorKey: "firstName",
+    header: "First Name",
+    cell: ({ row }) => (
+      <div>
+        {row.original.firstName} {row.original.lastName}
+      </div>
+    ),
+  },
+  {
+    accessorKey: "email",
+    header: "Email",
+    cell: ({ row }) => row.original.email,
+  },
+  {
+    accessorKey: "role",
+    header: "Role",
+    cell: ({ row }) => <div className="capitalize">{row.original.role}</div>,
+  },
+  {
+    accessorKey: "createdAt",
+    header: "Created At",
+    cell: ({ row }) => row.original.createdAt,
+  },
+];
 
 const App = () => {
   const [search, setSearch] = useState("");
@@ -16,6 +50,11 @@ const App = () => {
       );
     });
   }, [deferredSearch]);
+  const table = useReactTable({
+    data: filteredUsers,
+    columns,
+    getCoreRowModel: getCoreRowModel(),
+  });
   const Row = ({
     index,
     style,
@@ -23,22 +62,18 @@ const App = () => {
     index: number;
     style: React.CSSProperties;
   }) => {
-    const user = filteredUsers[index];
+    const row = table.getRowModel().rows[index];
 
     return (
       <div
         style={style}
         className="grid grid-cols-4 border-b border-gray-100 bg-white px-6 py-4 text-sm text-gray-700"
       >
-        <div>
-          {user.firstName} {user.lastName}
-        </div>
-
-        <div>{user.email}</div>
-
-        <div className="capitalize">{user.role}</div>
-
-        <div>{user.createdAt}</div>
+        {row.getVisibleCells().map((cell) => (
+          <div key={cell.id}>
+            {flexRender(cell.column.columnDef.cell, cell.getContext())}
+          </div>
+        ))}
       </div>
     );
   };
