@@ -5,8 +5,10 @@ import type { ColumnDef } from "@tanstack/react-table";
 import {
   flexRender,
   getCoreRowModel,
+  getSortedRowModel,
   useReactTable,
 } from "@tanstack/react-table";
+import type { SortingState } from "@tanstack/react-table";
 import type { User } from "@crm/shared-types";
 
 const columns: ColumnDef<User>[] = [
@@ -38,6 +40,7 @@ const columns: ColumnDef<User>[] = [
 
 const App = () => {
   const [search, setSearch] = useState("");
+  const [sorting, setSorting] = useState<SortingState>([]);
   const deferredSearch = useDeferredValue(search);
   const isSearching = search !== deferredSearch;
   const filteredUsers = useMemo(() => {
@@ -53,7 +56,15 @@ const App = () => {
   const table = useReactTable({
     data: filteredUsers,
     columns,
+
+    state: {
+      sorting,
+    },
+
+    onSortingChange: setSorting,
+
     getCoreRowModel: getCoreRowModel(),
+    getSortedRowModel: getSortedRowModel(),
   });
   const Row = ({
     index,
@@ -96,12 +107,30 @@ const App = () => {
       )}
       <div className="min-h-0 flex-1 overflow-y-auto rounded-2xl border border-gray-200 bg-white">
         <div className="overflow-hidden rounded-2xl border border-gray-200 bg-white">
-          <div className="grid grid-cols-4 border-b border-gray-200 bg-gray-50 px-6 py-4 text-sm font-semibold text-gray-700">
-            <div>Name</div>
-            <div>Email</div>
-            <div>Role</div>
-            <div>Created At</div>
-          </div>
+          {table.getHeaderGroups().map((headerGroup) => (
+            <div
+              key={headerGroup.id}
+              className="grid grid-cols-4 border-b border-gray-200 bg-gray-50 px-6 py-4 text-sm font-semibold text-gray-700"
+            >
+              {headerGroup.headers.map((header) => (
+                <div
+                  key={header.id}
+                  onClick={header.column.getToggleSortingHandler()}
+                  className="cursor-pointer select-none"
+                >
+                  {flexRender(
+                    header.column.columnDef.header,
+                    header.getContext()
+                  )}
+
+                  {{
+                    asc: " 🔼",
+                    desc: " 🔽",
+                  }[header.column.getIsSorted() as string] ?? null}
+                </div>
+              ))}
+            </div>
+          ))}
 
           <FixedSizeList
             height={600}
