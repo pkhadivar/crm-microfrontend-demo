@@ -1,14 +1,14 @@
 import { users } from "./data/users";
-import { useMemo, useState, useDeferredValue } from "react";
+import { useState, useDeferredValue } from "react";
 import { FixedSizeList } from "react-window";
-import type { ColumnDef } from "@tanstack/react-table";
+import type { ColumnDef, SortingState } from "@tanstack/react-table";
 import {
   flexRender,
   getCoreRowModel,
   getSortedRowModel,
+  getFilteredRowModel,
   useReactTable,
 } from "@tanstack/react-table";
-import type { SortingState } from "@tanstack/react-table";
 import type { User } from "@crm/shared-types";
 
 const columns: ColumnDef<User>[] = [
@@ -39,31 +39,25 @@ const columns: ColumnDef<User>[] = [
 ];
 
 const App = () => {
-  const [search, setSearch] = useState("");
   const [sorting, setSorting] = useState<SortingState>([]);
-  const deferredSearch = useDeferredValue(search);
-  const isSearching = search !== deferredSearch;
-  const filteredUsers = useMemo(() => {
-    return users.filter((user) => {
-      const fullName = `${user.firstName} ${user.lastName}`.toLowerCase();
+  const [globalFilter, setGlobalFilter] = useState("");
+  const deferredFilter = useDeferredValue(globalFilter);
+  const isSearching = globalFilter !== deferredFilter;
 
-      return (
-        fullName.includes(deferredSearch.toLowerCase()) ||
-        user.email.toLowerCase().includes(deferredSearch.toLowerCase())
-      );
-    });
-  }, [deferredSearch]);
   const table = useReactTable({
-    data: filteredUsers,
+    data: users,
     columns,
 
     state: {
       sorting,
+      globalFilter: deferredFilter,
     },
 
     onSortingChange: setSorting,
+    onGlobalFilterChange: setGlobalFilter,
 
     getCoreRowModel: getCoreRowModel(),
+    getFilteredRowModel: getFilteredRowModel(),
     getSortedRowModel: getSortedRowModel(),
   });
   const Row = ({
@@ -97,8 +91,8 @@ const App = () => {
         <input
           type="text"
           placeholder="Search users..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
+          value={globalFilter}
+          onChange={(e) => setGlobalFilter(e.target.value)}
           className="w-full rounded-xl border border-gray-300 bg-white px-4 py-3 outline-none transition focus:border-blue-500"
         />
       </div>
@@ -134,7 +128,7 @@ const App = () => {
 
           <FixedSizeList
             height={600}
-            itemCount={filteredUsers.length}
+            itemCount={table.getRowModel().rows.length}
             itemSize={60}
             width="100%"
           >
