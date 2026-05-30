@@ -1,4 +1,4 @@
-import { users } from "./data/users";
+import { getUsers } from "./features/users/users.repository";
 import { useState, useDeferredValue } from "react";
 import { FixedSizeList } from "react-window";
 import type {
@@ -70,7 +70,7 @@ const App = () => {
   const isSearching = globalFilter !== deferredFilter;
 
   const table = useReactTable({
-    data: users,
+    data: getUsers(),
     columns,
 
     state: {
