@@ -1,90 +1,121 @@
-import { getUsers } from "./features/users/users.repository";
-import { useState, useDeferredValue } from "react";
+import { useUsers } from "./features/users/hooks/useUsers";
+import { QueryProvider } from "./providers/QueryProvider";
+import { useMemo, useState, useDeferredValue } from "react";
 import { FixedSizeList } from "react-window";
-import type {
-  ColumnDef,
-  SortingState,
-  RowSelectionState,
-} from "@tanstack/react-table";
+import type { ColumnDef } from "@tanstack/react-table";
 import {
   flexRender,
   getCoreRowModel,
   getSortedRowModel,
-  getFilteredRowModel,
   useReactTable,
 } from "@tanstack/react-table";
+import type { SortingState } from "@tanstack/react-table";
 import type { User } from "@crm/shared-types";
 
 const columns: ColumnDef<User>[] = [
   {
-    id: "select",
+    accessorKey: "first_name",
 
-    header: ({ table }) => (
-      <input
-        type="checkbox"
-        checked={table.getIsAllRowsSelected()}
-        onChange={table.getToggleAllRowsSelectedHandler()}
-      />
-    ),
+    header: "Name",
 
-    cell: ({ row }) => (
-      <input
-        type="checkbox"
-        checked={row.getIsSelected()}
-        disabled={!row.getCanSelect()}
-        onChange={row.getToggleSelectedHandler()}
-      />
-    ),
-  },
-  {
-    accessorKey: "firstName",
-    header: "First Name",
     cell: ({ row }) => (
       <div>
-        {row.original.firstName} {row.original.lastName}
+        {row.original.first_name || "-"} {row.original.last_name || ""}
       </div>
     ),
   },
+
   {
     accessorKey: "email",
+
     header: "Email",
-    cell: ({ row }) => row.original.email,
+
+    cell: ({ row }) => (
+      <div className="truncate" title={row.original.email}>
+        {row.original.email}
+      </div>
+    ),
   },
+
   {
-    accessorKey: "role",
+    accessorKey: "phone",
+
+    header: "Phone",
+
+    cell: ({ row }) => row.original.phone,
+  },
+
+  {
+    accessorKey: "department",
+
+    header: "Department",
+
+    cell: ({ row }) => row.original.department?.name ?? "-",
+  },
+
+  {
+    accessorKey: "roles",
+
     header: "Role",
-    cell: ({ row }) => <div className="capitalize">{row.original.role}</div>,
+
+    cell: ({ row }) => (
+      <div
+        className="truncate"
+        title={row.original.roles?.map((r) => r.name).join(", ")}
+      >
+        {row.original.roles?.length
+          ? row.original.roles.map((r) => r.name).join(", ")
+          : "-"}
+      </div>
+    ),
   },
+
   {
-    accessorKey: "createdAt",
-    header: "Created At",
-    cell: ({ row }) => row.original.createdAt,
+    accessorKey: "is_active",
+
+    header: "Status",
+
+    cell: ({ row }) => (
+      <span>{row.original.is_active ? "🟢 Active" : "🔴 Inactive"}</span>
+    ),
+  },
+
+  {
+    accessorKey: "created_at",
+
+    header: "Created",
+
+    cell: ({ row }) => new Date(row.original.created_at).toLocaleDateString(),
   },
 ];
-const gridTemplate = "60px 1.2fr 1.5fr 1fr 1fr";
-const App = () => {
-  const [sorting, setSorting] = useState<SortingState>([]);
-  const [globalFilter, setGlobalFilter] = useState("");
-  const [rowSelection, setRowSelection] = useState<RowSelectionState>({});
-  const deferredFilter = useDeferredValue(globalFilter);
-  const isSearching = globalFilter !== deferredFilter;
 
+const UsersApp = () => {
+  const { data: users = [], isLoading, error } = useUsers();
+  const [search, setSearch] = useState("");
+  const [sorting, setSorting] = useState<SortingState>([]);
+  const deferredSearch = useDeferredValue(search);
+  const isSearching = search !== deferredSearch;
+  const filteredUsers = useMemo(() => {
+    return users.filter((user) => {
+      const fullName = `${user.first_name} ${user.last_name}`.toLowerCase();
+
+      return (
+        fullName.includes(deferredSearch.toLowerCase()) ||
+        user.email.toLowerCase().includes(deferredSearch.toLowerCase())
+      );
+    });
+  }, [users, deferredSearch]);
   const table = useReactTable({
-    data: getUsers(),
+    data: filteredUsers,
     columns,
 
     state: {
       sorting,
-      globalFilter: deferredFilter,
-      rowSelection,
     },
-    onRowSelectionChange: setRowSelection,
-    enableRowSelection: true,
+
     onSortingChange: setSorting,
-    onGlobalFilterChange: setGlobalFilter,
 
     getCoreRowModel: getCoreRowModel(),
-    getFilteredRowModel: getFilteredRowModel(),
     getSortedRowModel: getSortedRowModel(),
   });
   const Row = ({
@@ -98,21 +129,32 @@ const App = () => {
 
     return (
       <div
-        className="border-b border-gray-100 bg-white px-6 py-4 text-sm text-gray-700"
-        style={{
-          ...style,
-          display: "grid",
-          gridTemplateColumns: gridTemplate,
-        }}
+        style={style}
+        className="grid grid-cols-7 border-b border-gray-100 bg-white px-6 py-4 text-sm text-gray-700"
       >
         {row.getVisibleCells().map((cell) => (
-          <div key={cell.id}>
+          <div
+            key={cell.id}
+            className="
+          overflow-hidden
+          whitespace-nowrap
+          text-ellipsis
+          px-2
+        "
+          >
             {flexRender(cell.column.columnDef.cell, cell.getContext())}
           </div>
         ))}
       </div>
     );
   };
+  if (isLoading) {
+    return <div>Loading...</div>;
+  }
+
+  if (error) {
+    return <div>Error loading users</div>;
+  }
   return (
     <div className="flex h-full min-h-0 flex-col bg-gray-100 p-8">
       <h1 className="mb-6 shrink-0 text-3xl font-bold text-gray-800">
@@ -122,28 +164,20 @@ const App = () => {
         <input
           type="text"
           placeholder="Search users..."
-          value={globalFilter}
-          onChange={(e) => setGlobalFilter(e.target.value)}
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
           className="w-full rounded-xl border border-gray-300 bg-white px-4 py-3 outline-none transition focus:border-blue-500"
         />
       </div>
       {isSearching && (
         <p className="mt-2 text-sm text-gray-500">Searching...</p>
       )}
-      {table.getSelectedRowModel().rows.length > 0 && (
-        <div className="mb-4 rounded-xl bg-blue-100 px-4 py-3 text-sm text-blue-700">
-          {table.getSelectedRowModel().rows.length} users selected
-        </div>
-      )}
       <div className="min-h-0 flex-1 overflow-y-auto rounded-2xl border border-gray-200 bg-white">
         <div className="overflow-hidden rounded-2xl border border-gray-200 bg-white">
           {table.getHeaderGroups().map((headerGroup) => (
             <div
               key={headerGroup.id}
-              className="grid border-b border-gray-200 bg-gray-50 px-6 py-4 text-sm font-semibold text-gray-700"
-              style={{
-                gridTemplateColumns: gridTemplate,
-              }}
+              className="grid grid-cols-7 border-b border-gray-200 bg-gray-50 px-6 py-4 text-sm font-semibold text-gray-700"
             >
               {headerGroup.headers.map((header) => (
                 <div
@@ -167,7 +201,7 @@ const App = () => {
 
           <FixedSizeList
             height={600}
-            itemCount={table.getRowModel().rows.length}
+            itemCount={filteredUsers.length}
             itemSize={60}
             width="100%"
           >
@@ -178,5 +212,11 @@ const App = () => {
     </div>
   );
 };
+
+const App = () => (
+  <QueryProvider>
+    <UsersApp />
+  </QueryProvider>
+);
 
 export default App;

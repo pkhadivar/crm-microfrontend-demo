@@ -37,3 +37,22 @@
 - Using build + preview for federation
 - react-window virtualization
 - enterprise architecture focus
+
+## Known Technical Decisions
+
+### Virtualization
+
+Current:
+- react-window FixedSizeList
+
+Reason:
+- stable
+- already implemented
+- sufficient for current requirements
+
+Future:
+- consider @tanstack/react-virtual
+- migrate during table architecture refactor
+
+Known issue:
+- React 19 peer dependency warning
