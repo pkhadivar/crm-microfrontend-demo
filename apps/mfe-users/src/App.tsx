@@ -14,8 +14,12 @@ import type { SortingState } from "@tanstack/react-table";
 import type { User } from "@crm/shared-types";
 import { useCreateUser } from "./features/users/hooks/useCreateUser";
 import { useDeleteUser } from "./features/users/hooks/useDeleteUser";
+import { useUpdateUser } from "./features/users/hooks/useUpdateUser";
 
-const getColumns = (onDelete: (user: User) => void): ColumnDef<User>[] => [
+const getColumns = (
+  onDelete: (user: User) => void,
+  onEdit: (user: User) => void
+): ColumnDef<User>[] => [
   {
     accessorKey: "first_name",
 
@@ -96,49 +100,94 @@ const getColumns = (onDelete: (user: User) => void): ColumnDef<User>[] => [
     header: "Actions",
 
     cell: ({ row }) => (
-      <button
-        onClick={() => onDelete(row.original)}
-        className="
-      rounded
-      bg-red-500
-      px-3
-      py-1
-      text-white
-      "
-      >
-        Delete
-      </button>
+      <div className="flex gap-2">
+        <button
+          onClick={() => onEdit(row.original)}
+          className="rounded bg-blue-600 px-3 py-1 text-white"
+        >
+          Edit
+        </button>
+
+        <button
+          onClick={() => onDelete(row.original)}
+          className="rounded bg-red-500 px-3 py-1 text-white"
+        >
+          Delete
+        </button>
+      </div>
     ),
   },
 ];
 const UsersApp = () => {
   const [isCreateOpen, setIsCreateOpen] = useState(false);
-  const { data: users = [], isLoading, error } = useUsers();
   const [search, setSearch] = useState("");
   const [sorting, setSorting] = useState<SortingState>([]);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
-  const createUserMutation = useCreateUser();
-  const deleteMutation = useDeleteUser();
-  const columns = useMemo(() => getColumns(setSelectedUser), []);
-  const [newUser, setNewUser] = useState({
+  const [editingUser, setEditingUser] = useState<User | null>(null);
+  const emptyUser = {
     first_name: "",
     last_name: "",
     email: "",
-  });
+  };
+
+  const [formData, setFormData] = useState(emptyUser);
+  const { data: users = [], isLoading, error } = useUsers();
+  const createUserMutation = useCreateUser();
+  const deleteMutation = useDeleteUser();
+  const updateUserMutation = useUpdateUser();
+  const columns = useMemo(
+    () =>
+      getColumns(
+        setSelectedUser,
+
+        (user) => {
+          setEditingUser(user);
+
+          setFormData({
+            first_name: user.first_name,
+            last_name: user.last_name,
+            email: user.email,
+          });
+
+          setIsCreateOpen(true);
+        }
+      ),
+
+    []
+  );
+
+  const resetForm = () => {
+    setFormData(emptyUser);
+    setEditingUser(null);
+    setIsCreateOpen(false);
+  };
 
   const handleCreateUser = async () => {
+    await createUserMutation.mutateAsync(formData);
+
+    resetForm();
+  };
+
+  const handleUpdateUser = async () => {
+    if (!editingUser) return;
+
+    await updateUserMutation.mutateAsync({
+      id: editingUser.id,
+      data: formData,
+    });
+
+    resetForm();
+  };
+
+  const handleSubmit = async () => {
     try {
-      await createUserMutation.mutateAsync(newUser);
-
-      setNewUser({
-        first_name: "",
-        last_name: "",
-        email: "",
-      });
-
-      setIsCreateOpen(false);
+      if (editingUser) {
+        await handleUpdateUser();
+      } else {
+        await handleCreateUser();
+      }
     } catch (error) {
-      console.error("Create failed", error);
+      console.error(error);
     }
   };
   const handleDelete = async () => {
@@ -229,7 +278,13 @@ const UsersApp = () => {
         />
 
         <button
-          onClick={() => setIsCreateOpen(true)}
+          onClick={() => {
+            setEditingUser(null);
+
+            setFormData(emptyUser);
+
+            setIsCreateOpen(true);
+          }}
           className="shrink-0 rounded-xl bg-blue-600 px-5 py-3 font-medium text-white hover:bg-blue-700"
         >
           + Add User
@@ -277,15 +332,15 @@ const UsersApp = () => {
       </div>
       <Modal
         open={isCreateOpen}
-        title="Create User"
+        title={editingUser ? "Update User" : "Create User"}
         onClose={() => setIsCreateOpen(false)}
       >
         <div className="space-y-4">
           <input
-            value={newUser.first_name}
+            value={formData.first_name}
             onChange={(e) =>
-              setNewUser({
-                ...newUser,
+              setFormData({
+                ...formData,
                 first_name: e.target.value,
               })
             }
@@ -294,10 +349,10 @@ const UsersApp = () => {
           />
 
           <input
-            value={newUser.last_name}
+            value={formData.last_name}
             onChange={(e) =>
-              setNewUser({
-                ...newUser,
+              setFormData({
+                ...formData,
                 last_name: e.target.value,
               })
             }
@@ -306,10 +361,10 @@ const UsersApp = () => {
           />
 
           <input
-            value={newUser.email}
+            value={formData.email}
             onChange={(e) =>
-              setNewUser({
-                ...newUser,
+              setFormData({
+                ...formData,
                 email: e.target.value,
               })
             }
@@ -318,11 +373,11 @@ const UsersApp = () => {
           />
 
           <button
-            onClick={handleCreateUser}
+            onClick={handleSubmit}
             disabled={createUserMutation.isPending}
             className="w-full rounded bg-blue-600 p-3 text-white disabled:opacity-50"
           >
-            {createUserMutation.isPending ? "Creating..." : "Create User"}
+            {editingUser ? "Update User" : "Create User"}
           </button>
         </div>
       </Modal>

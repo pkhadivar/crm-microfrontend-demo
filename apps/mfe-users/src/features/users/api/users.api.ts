@@ -53,3 +53,33 @@ export async function deleteUser(id: number): Promise<void> {
   }
 }
 
+export const updateUser = async (
+  id: number,
+  data: {
+    first_name: string;
+    last_name: string;
+    email: string;
+  }
+) => {
+  const response = await fetch(
+    `${API_URL}${id}/`,
+    {
+      method: "PATCH",
+
+      headers: {
+        "Content-Type":
+          "application/json",
+      },
+
+      body: JSON.stringify(data),
+    }
+  );
+
+  if (!response.ok) {
+    throw new Error(
+      "Failed to update user"
+    );
+  }
+
+  return response.json();
+};
